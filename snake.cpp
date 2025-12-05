@@ -1,14 +1,12 @@
 #include <iostream>
 #include <vector>
-#include <conio.h>    // _kbhit, _getch  Windows only
-#include <windows.h>  // Sleep, system   Windows only
 #include <cstdlib>
 #include <ctime>
 
 using namespace std;
 
-const int WIDTH = 30;
-const int HEIGHT = 20;
+const int WIDTH = 20;
+const int HEIGHT = 10;
 
 enum Direction {
     STOP = 0,
@@ -27,112 +25,17 @@ struct Position {
     }
 };
 
-bool gameOver;
+bool gameOverFlag;
 Direction dir;
 vector<Position> snake;
 Position food;
-int score;
-int speedMs = 120; // lower is faster
+int scoreVal;
 
-void Setup() {
-    gameOver = false;
-    dir = STOP;
-    snake.clear();
-
-    // Start snake in the center
-    Position start;
-    start.x = WIDTH / 2;
-    start.y = HEIGHT / 2;
-    snake.push_back(start);
-
-    score = 0;
-    srand(static_cast<unsigned int>(time(nullptr)));
-
-    food.x = rand() % WIDTH;
-    food.y = rand() % HEIGHT;
-}
-
-void Draw() {
-    // Clear the console
-    system("cls");
-
-    cout << "Snake Game in C plus plus\n";
-    cout << "Controls W A S D to move  X to quit\n";
-    cout << "Score " << score << "\n\n";
-
-    // Top wall
-    for (int i = 0; i < WIDTH + 2; i++) {
-        cout << "#";
-    }
-    cout << "\n";
-
-    for (int y = 0; y < HEIGHT; y++) {
-        for (int x = 0; x < WIDTH; x++) {
-            if (x == 0) {
-                cout << "#"; // left wall
-            }
-
-            Position current{ x, y };
-            if (snake[0] == current) {
-                cout << "O"; // head
-            } else if (food == current) {
-                cout << "F"; // food
-            } else {
-                bool printBody = false;
-                for (size_t i = 1; i < snake.size(); i++) {
-                    if (snake[i] == current) {
-                        cout << "o"; // body
-                        printBody = true;
-                        break;
-                    }
-                }
-
-                if (!printBody) {
-                    cout << " ";
-                }
-            }
-
-            if (x == WIDTH - 1) {
-                cout << "#"; // right wall
-            }
-        }
+// Simple helper to clear screen for online compilers
+void ClearScreen() {
+    // Print many newlines so the old board scrolls away
+    for (int i = 0; i < 30; i++) {
         cout << "\n";
-    }
-
-    // Bottom wall
-    for (int i = 0; i < WIDTH + 2; i++) {
-        cout << "#";
-    }
-    cout << "\n";
-}
-
-void Input() {
-    if (_kbhit()) {
-        char key = _getch();
-        switch (key) {
-            case 'a':
-            case 'A':
-                if (dir != RIGHT_DIR) dir = LEFT_DIR;
-                break;
-            case 'd':
-            case 'D':
-                if (dir != LEFT_DIR) dir = RIGHT_DIR;
-                break;
-            case 'w':
-            case 'W':
-                if (dir != DOWN_DIR) dir = UP_DIR;
-                break;
-            case 's':
-            case 'S':
-                if (dir != UP_DIR) dir = DOWN_DIR;
-                break;
-            case 'x':
-            case 'X':
-                gameOver = true;
-                break;
-            default:
-                break;
-        }
     }
 }
 
@@ -148,68 +51,161 @@ void GenerateFood() {
                 break;
             }
         }
-
         if (!onSnake) {
             break;
         }
     }
 }
 
+void Setup() {
+    gameOverFlag = false;
+    dir = STOP;
+    snake.clear();
+
+    Position start;
+    start.x = WIDTH / 2;
+    start.y = HEIGHT / 2;
+    snake.push_back(start);
+
+    scoreVal = 0;
+    srand(static_cast<unsigned int>(time(nullptr)));
+
+    GenerateFood();
+}
+
+void Draw() {
+    ClearScreen();
+
+    cout << "Simple Snake Game C plus plus\n";
+    cout << "Use W A S D then Enter to move   Q then Enter to quit\n";
+    cout << "Score " << scoreVal << "\n\n";
+
+    // top border
+    for (int i = 0; i < WIDTH + 2; i++) {
+        cout << "#";
+    }
+    cout << "\n";
+
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            if (x == 0) {
+                cout << "#";
+            }
+
+            Position current{ x, y };
+            if (snake[0] == current) {
+                cout << "O"; // head
+            } else if (food == current) {
+                cout << "F"; // food
+            } else {
+                bool bodyPrinted = false;
+                for (size_t i = 1; i < snake.size(); i++) {
+                    if (snake[i] == current) {
+                        cout << "o";
+                        bodyPrinted = true;
+                        break;
+                    }
+                }
+                if (!bodyPrinted) {
+                    cout << " ";
+                }
+            }
+
+            if (x == WIDTH - 1) {
+                cout << "#";
+            }
+        }
+        cout << "\n";
+    }
+
+    // bottom border
+    for (int i = 0; i < WIDTH + 2; i++) {
+        cout << "#";
+    }
+    cout << "\n";
+}
+
+void Input() {
+    cout << "Next move W A S D or Q to quit  then press Enter  ";
+    char key;
+    cin >> key;
+
+    switch (key) {
+        case 'a':
+        case 'A':
+            if (dir != RIGHT_DIR) dir = LEFT_DIR;
+            break;
+        case 'd':
+        case 'D':
+            if (dir != LEFT_DIR) dir = RIGHT_DIR;
+            break;
+        case 'w':
+        case 'W':
+            if (dir != DOWN_DIR) dir = UP_DIR;
+            break;
+        case 's':
+        case 'S':
+            if (dir != UP_DIR) dir = DOWN_DIR;
+            break;
+        case 'q':
+        case 'Q':
+            gameOverFlag = true;
+            break;
+        default:
+            // keep current direction if input is invalid
+            break;
+    }
+}
+
 void Logic() {
     if (dir == STOP) {
+        // before first move   do nothing
         return;
     }
 
-    // Current head position
     Position head = snake[0];
 
-    // Move head
+    // move head
     switch (dir) {
         case LEFT_DIR:
-            head.x--;
+            head.x -= 1;
             break;
         case RIGHT_DIR:
-            head.x++;
+            head.x += 1;
             break;
         case UP_DIR:
-            head.y--;
+            head.y -= 1;
             break;
         case DOWN_DIR:
-            head.y++;
+            head.y += 1;
             break;
         default:
             break;
     }
 
-    // Check wall collision
+    // wall collision
     if (head.x < 0 || head.x >= WIDTH || head.y < 0 || head.y >= HEIGHT) {
-        gameOver = true;
+        gameOverFlag = true;
         return;
     }
 
-    // Check self collision
+    // self collision
     for (size_t i = 0; i < snake.size(); i++) {
         if (snake[i] == head) {
-            gameOver = true;
+            gameOverFlag = true;
             return;
         }
     }
 
-    // Insert new head
+    // insert new head
     snake.insert(snake.begin(), head);
 
-    // Check food
+    // check food
     if (head == food) {
-        score += 10;
-
-        // Speed up slightly
-        if (speedMs > 40) {
-            speedMs -= 2;
-        }
-
+        scoreVal += 10;
         GenerateFood();
     } else {
-        // Remove tail segment
+        // remove tail
         snake.pop_back();
     }
 }
@@ -217,18 +213,14 @@ void Logic() {
 int main() {
     Setup();
 
-    while (!gameOver) {
+    while (!gameOverFlag) {
         Draw();
         Input();
         Logic();
-        Sleep(speedMs); // milliseconds
     }
 
-    system("cls");
+    ClearScreen();
     cout << "Game Over\n";
-    cout << "Final Score " << score << "\n";
-    cout << "Press any key to exit\n";
-    _getch();
-
+    cout << "Final score " << scoreVal << "\n";
     return 0;
 }
